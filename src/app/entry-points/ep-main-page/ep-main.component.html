@@ -1,0 +1,15 @@
+<div class="ui secondary pointing menu" id="epTypeHeader">
+    <a class="item active" (click)="changeEpType(0)">
+        適当
+    </a>
+    <a class="item" (click)="changeEpType(1)">
+        下ヒゲ
+    </a>
+    <a class="item" (click)="changeEpType(2)">
+        new ep
+    </a>
+
+</div>
+
+<ep-random *ngIf="typeEpShow==0"></ep-random>
+<ep-lower-shadow *ngIf="typeEpShow==1"></ep-lower-shadow>
