@@ -12,7 +12,7 @@ import { SharedEpService } from '../../services/shared-ep.service';
 })
 export class RandomComponent extends AbstractEpComponent implements OnInit {
 
-  resultLabelId = 'random_result_label';
+  resultLabelId = 'result_label';
 
   /** 適当買いシミュレート時の生成する乱数の数( 1/??? の確率で購入) */
   purchaseTriggerRandomNumber = 100;
@@ -34,10 +34,13 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
 
   start() {
 
+
     // 0個目の要素を取得してみて、取得できなかったらpricesListList未取得と判断(new Object()のやつなので、lengthは使えない)
     if (!this.epShare.pricesListList[0]) {
       // pricesListList未取得だった場合は、取得からスタート
       console.log('pricesList取得開始します');
+
+      this.startLoading('株価を取得中');
 
       this.stockDataService.getPricesList(this.codeNumber).then((result) => {
         console.log('完了したみたい');

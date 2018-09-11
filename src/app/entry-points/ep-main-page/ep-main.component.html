@@ -6,10 +6,32 @@
         下ヒゲ
     </a>
     <a class="item" (click)="changeEpType(2)">
-        new ep
+        上ヒゲ
     </a>
+    <a class="item" (click)="changeEpType(3)">
+        2連下ヒゲ
+    </a>
+    <a class="item" (click)="changeEpType(4)">
+        底値下ヒゲ
+    </a>
+    <a class="item" (click)="changeEpType(5)">
+        ダブルはらみ
+    </a>
+    <a class="item" (click)="changeEpType(6)">
+        赤三兵
+    </a>
+    <a class="item" (click)="changeEpType(7)">
+        カスタム
+    </a>
+
 
 </div>
 
-<ep-random *ngIf="typeEpShow==0"></ep-random>
-<ep-lower-shadow *ngIf="typeEpShow==1"></ep-lower-shadow>
+<ep-random *ngIf="typeEpShow == 0"></ep-random>
+<ep-lower-shadow *ngIf="typeEpShow == 1"></ep-lower-shadow>
+<ep-upper-shadow *ngIf="typeEpShow == 2"></ep-upper-shadow>
+<ep-double-ls *ngIf="typeEpShow == 3"></ep-double-ls>
+<ep-ls-in-bottom *ngIf="typeEpShow == 4"></ep-ls-in-bottom>
+<ep-double-harami *ngIf="typeEpShow == 5"></ep-double-harami>
+<ep-akasanpei *ngIf="typeEpShow == 6"></ep-akasanpei>
+<ep-custom *ngIf="typeEpShow == 7"></ep-custom>

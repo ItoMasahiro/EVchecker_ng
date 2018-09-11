@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 
+import { StockDataService } from '../../services/stock-data.service';
+import { SharedEpService } from '../../services/shared-ep.service';
+
 declare var Chart: any;
 
 @Component({
@@ -38,12 +41,46 @@ export class AbstractEpComponent implements OnInit {
     /** 期間別グラフの目盛り */
     periodScale = ['2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018'];
 
+    /** ローディングぐるぐるを出すかどうか */
+    isLoading = false;
+    /** ローディングぐるぐるの下に表示する文字 */
+    processText = 'loading'
+
+    resultLabelId = 'result_label';
+
     resultList = [];
 
-    constructor() { }
+    constructor(public epShare: SharedEpService, public stockDataService: StockDataService) { }
 
     ngOnInit() {
     }
+
+    start() {
+
+
+        // 0個目の要素を取得してみて、取得できなかったらpricesListList未取得と判断(new Object()のやつなので、lengthは使えない)
+        if (!this.epShare.pricesListList[0]) {
+            // pricesListList未取得だった場合は、取得からスタート
+            console.log('pricesList取得開始します');
+
+            this.startLoading('株価を取得中');
+
+            this.stockDataService.getPricesList(this.codeNumber).then((result) => {
+                console.log('完了したみたい');
+                console.log(result);
+                this.epShare.pricesListList = result;
+                this.simulate();
+                console.log(this.resultList);
+                this.calcAndShowResult(this.resultLabelId, this.resultList);
+            });
+        } else {
+            // pricesListList取得済みだった場合は、シミュレートからスタート
+            this.simulate();
+            this.calcAndShowResult(this.resultLabelId, this.resultList);
+        }
+    }
+
+    simulate(){}
 
     /**
     * 期待値を計算し、表示する
@@ -174,7 +211,6 @@ export class AbstractEpComponent implements OnInit {
         具体的には、最初にいったん<canvas>タグを消して、再度新しい<canvas>タグを生成して同じ場所に配置している。
         */
         const parent = canvasElem.parentElement;
-        console.log('ペアレントエレメント＝'+parent);
         // いったん<canvas>を消す
         canvasElem.remove();
         const newCanvas = document.createElement('canvas');
@@ -419,5 +455,20 @@ export class AbstractEpComponent implements OnInit {
 
     }
 
+    /**
+     * ローディングを開始する
+     * @param text ぐるぐるの下に表示する文字
+     */
+    startLoading(text) {
+        this.processText = text;
+        this.isLoading = true;
+    }
 
+    /**
+     * ローディングを停止する
+     */
+    stopLoading() {
+        this.isLoading = false;
+        this.isLoading = false;
+    }
 }

@@ -5,11 +5,11 @@ import { SharedEpService } from '../../services/shared-ep.service';
 import { Router } from '@angular/router';
 
 @Component({
-    selector: 'ep-lower-shadow',
-    templateUrl: './lower-shadow.component.html',
-    styleUrls: ['./lower-shadow.component.css']
+    selector: 'ep-upper-shadow',
+    templateUrl: './upper-shadow.component.html',
+    styleUrls: ['./upper-shadow.component.css']
 })
-export class LowerShadowComponent extends AbstractEpComponent implements OnInit {
+export class UpperShadowComponent extends AbstractEpComponent implements OnInit {
     
     
     resultLabelId = 'result_label';
@@ -54,7 +54,7 @@ export class LowerShadowComponent extends AbstractEpComponent implements OnInit 
     }
 
     /**
-     * 下ヒゲでのシミュレーション
+     * 上ヒゲでのシミュレーション
      */
     simulate() {
 
@@ -73,8 +73,8 @@ export class LowerShadowComponent extends AbstractEpComponent implements OnInit 
                 }
 
 
-                // 下ヒゲがpurchaseToriggerより長かったら購入
-                if (pricesList.prices[i].ls >= this.purchaseTrigger) {
+                // 上ヒゲがpurchaseToriggerより長かったら購入
+                if (pricesList.prices[i].us >= this.purchaseTrigger) {
                     // 購入時は次の足の始値で購入するため、次の足が存在しない場合はスルー
                     if (!pricesList.prices[i + 1]) {
                         break;

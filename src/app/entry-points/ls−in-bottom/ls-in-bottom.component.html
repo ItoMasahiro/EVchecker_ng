@@ -1,7 +1,8 @@
 <div class="card">
-    <h2>下ヒゲ</h2>
+    <h2>底値下ヒゲ</h2>
     <div class="ui form">
         <br>
+        
         <div class="inline fields" id="purchase_pattern_radio">
             <h4>購入条件</h4>
             <form name="myForm" ng-controller="Ctrl">
@@ -41,7 +42,13 @@
         <label>円</label>
         <br>
         <br>
+        <h4>底値判定日数</h4>
+        <div class="ui small input">
+            <input type="number" [(ngModel)]="areasJudgementStandardLsInBottom">
+        </div>
+        <label>本</label>
         <h4>下ヒゲの長さ</h4>
+
         <div class="ui small input">
             <input type="number" [(ngModel)]="purchaseTrigger">
         </div>
@@ -49,6 +56,7 @@
     </div>
 
     <br>
+
 
     <button class="ui blue big button" (click)="start()">start</button>
 
