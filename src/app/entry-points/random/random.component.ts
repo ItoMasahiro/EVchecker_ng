@@ -17,8 +17,8 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
   /** 適当買いシミュレート時の生成する乱数の数( 1/??? の確率で購入) */
   purchaseTriggerRandomNumber = 100;
 
-  constructor(private stockDataService: StockDataService, private epShare: SharedEpService) {
-    super();
+  constructor(public stockDataService: StockDataService, public epShare: SharedEpService) {
+    super(epShare, stockDataService);
   }
 
   ngOnInit() {
@@ -32,35 +32,13 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
     this.purchasePattern = pattern;
   }
 
-  start() {
-
-
-    // 0個目の要素を取得してみて、取得できなかったらpricesListList未取得と判断(new Object()のやつなので、lengthは使えない)
-    if (!this.epShare.pricesListList[0]) {
-      // pricesListList未取得だった場合は、取得からスタート
-      console.log('pricesList取得開始します');
-
-      this.startLoading('株価を取得中');
-
-      this.stockDataService.getPricesList(this.codeNumber).then((result) => {
-        console.log('完了したみたい');
-        console.log(result);
-        this.epShare.pricesListList = result;
-        this.simulate();
-        console.log(this.resultList);
-        this.calcAndShowResult(this.resultLabelId, this.resultList);
-      });
-    } else {
-      // pricesListList取得済みだった場合は、シミュレートからスタート
-      this.simulate();
-      this.calcAndShowResult(this.resultLabelId, this.resultList);
-    }
-  }
-
   /**
    * ランダムでのシミュレーション。そもそも適当にトレードしたらどうなるのかをシミュレートする
    */
   simulate() {
+
+    this.startLoading('シミュレート中');
+    console.log('aaa');
 
     const pricesListNum = Object.keys(this.epShare.pricesListList).length;
     if (pricesListNum == 0) {
@@ -197,5 +175,7 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
         }
       }
     }
+
+    this.stopLoading();
   }
 }

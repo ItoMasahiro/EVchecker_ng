@@ -12,12 +12,10 @@ import { Router } from '@angular/router';
 export class DoubleLsComponent extends AbstractEpComponent implements OnInit {
 
 
-    resultLabelId = 'result_label';
-
     purchaseTrigger = 0;
 
-    constructor(private stockDataService: StockDataService, private epShare: SharedEpService, private router: Router) {
-        super();
+    constructor(public stockDataService: StockDataService, public epShare: SharedEpService, private router: Router) {
+        super(epShare,stockDataService);
     }
 
     ngOnInit() {
@@ -30,27 +28,6 @@ export class DoubleLsComponent extends AbstractEpComponent implements OnInit {
     */
     selectPurchasePattern(pattern: number): void {
         this.purchasePattern = pattern;
-    }
-
-    start() {
-
-        // 0個目の要素を取得してみて、取得できなかったらpricesListList未取得と判断(new Object()のやつなので、lengthは使えない)
-        if (!this.epShare.pricesListList[0]) {
-            // pricesListList未取得だった場合は、取得からスタート
-            console.log('pricesList取得開始します');
-
-            this.stockDataService.getPricesList(this.codeNumber).then((result) => {
-                console.log(result);
-                this.epShare.pricesListList = result;
-                this.simulate();
-                console.log(this.resultList);
-                this.calcAndShowResult(this.resultLabelId, this.resultList);
-            });
-        } else {
-            // pricesListList取得済みだった場合は、シミュレートからスタート
-            this.simulate();
-            this.calcAndShowResult(this.resultLabelId, this.resultList);
-        }
     }
 
     /**
@@ -195,5 +172,7 @@ export class DoubleLsComponent extends AbstractEpComponent implements OnInit {
                 }
             }
         }
+
+        this.stopLoading();
     }
 }

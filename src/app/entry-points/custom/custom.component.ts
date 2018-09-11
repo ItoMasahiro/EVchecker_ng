@@ -12,8 +12,6 @@ import { Router } from '@angular/router';
 export class CustomComponent extends AbstractEpComponent implements OnInit {
 
 
-    resultLabelId = 'result_label';
-
     /** 入力された上ヒゲの長さ */
     inputUsLength_low = 0;
     inputUsLength_high = 100;
@@ -31,13 +29,12 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
 
     purchaseTrigger = 0;
 
-    constructor(private stockDataService: StockDataService, private epShare: SharedEpService, private router: Router) {
-        super();
+    constructor(public stockDataService: StockDataService, public epShare: SharedEpService, private router: Router) {
+        super(epShare,stockDataService);
     }
 
 
     ngOnInit() {
-
 
     }
 
@@ -138,31 +135,12 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
     }
 
 
-    start() {
-        // 0個目の要素を取得してみて、取得できなかったらpricesListList未取得と判断(new Object()のやつなので、lengthは使えない)
-        if (!this.epShare.pricesListList[0]) {
-            // pricesListList未取得だった場合は、取得からスタート
-            console.log('pricesList取得開始します');
-
-            this.stockDataService.getPricesList(this.codeNumber).then((result) => {
-                console.log(result);
-                this.epShare.pricesListList = result;
-                this.simulate();
-                console.log(this.resultList);
-                this.calcAndShowResult(this.resultLabelId, this.resultList);
-            });
-        } else {
-            // pricesListList取得済みだった場合は、シミュレートからスタート
-            this.simulate();
-            this.calcAndShowResult(this.resultLabelId, this.resultList);
-        }
-    }
-
-
     /**
      * カスタムでのシミュレーション
      */
     simulate() {
+
+        // this.startLoading('シミュレート中');
 
         const pricesListNum = Object.keys(this.epShare.pricesListList).length;
         if (pricesListNum == 0) {
@@ -332,5 +310,8 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
                 }
             }
         }
+
+        this.stopLoading();
+
     }
 }

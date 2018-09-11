@@ -1,67 +1,75 @@
 <div class="card">
-    <h2>赤三兵</h2>
-    <div class="ui form">
-        <br>
-        <div class="inline fields" id="purchase_pattern_radio">
-            <h4>購入条件</h4>
-            <form name="myForm" ng-controller="Ctrl">
-                <div class="field">
-                    <div class="ui radio checkbox">
-                        <input type="radio" [value]="0" [checked]="purchasePattern == 0">
-                        <label (click)="selectPurchasePattern(0)">次の足の始値で購入</label>
+
+    <div class="ui segment">
+        <div class="ui active inverted dimmer" *ngIf="isLoading">
+            <div class="ui medium text loader">{{processText}}</div>
+        </div>
+
+        <h2>赤三兵</h2>
+        <div class="ui form">
+            <br>
+            <div class="inline fields" id="purchase_pattern_radio">
+                <h4>購入条件</h4>
+                <form name="myForm" ng-controller="Ctrl">
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="0" [checked]="purchasePattern == 0">
+                            <label (click)="selectPurchasePattern(0)">次の足の始値で購入</label>
+                        </div>
                     </div>
-                </div>
-                <div class="field">
-                    <div class="ui radio checkbox">
-                        <input type="radio" [value]="1" [checked]="purchasePattern == 1">
-                        <label (click)="selectPurchasePattern(1)">現在値指値</label>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="1" [checked]="purchasePattern == 1">
+                            <label (click)="selectPurchasePattern(1)">現在値指値</label>
+                        </div>
                     </div>
-                </div>
-                <div class="field">
-                    <div class="ui radio checkbox">
-                        <input type="radio" [value]="2" [checked]="purchasePattern == 2">
-                        <label (click)="selectPurchasePattern(2)">現在値指値/利確指値</label>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="2" [checked]="purchasePattern == 2">
+                            <label (click)="selectPurchasePattern(2)">現在値指値/利確指値</label>
+                        </div>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <br>
+        <br>
 
-    <div class="inline fields">
-        <h4>価格帯絞り込み</h4>
-        <div class="ui small input">
-            <input type="number" [(ngModel)]="priceBandLow" class="price_band_input">
+        <div class="inline fields">
+            <h4>価格帯絞り込み</h4>
+            <div class="ui small input">
+                <input type="number" [(ngModel)]="priceBandLow" class="price_band_input">
+            </div>
+            <label>円　〜</label>
+            <div class="ui small input">
+                <input type="number" [(ngModel)]="priceBandHigh" class="price_band_input">
+            </div>
+            <label>円</label>
+            <br>
+            <br>
+            <h4>最後の足で無効とする上ヒゲの長さ</h4>
+            <div class="ui small input">
+                <input type="number" [(ngModel)]="invalidUsInAkasanpei">
+            </div>
+            <label>％</label>
         </div>
-        <label>円　〜</label>
-        <div class="ui small input">
-            <input type="number" [(ngModel)]="priceBandHigh" class="price_band_input">
+
+        <br>
+
+        <button class="ui blue big button" (click)="start()">start</button>
+
         </div>
-        <label>円</label>
+
+        <label id="progress"></label>
+
         <br>
         <br>
-        <h4>最後の足で無効とする上ヒゲの長さ</h4>
-        <div class="ui small input">
-            <input type="number" [(ngModel)]="invalidUsInAkasanpei">
+
+        <label id="result_label"></label>
+        <div class="canvas_div">
+            <canvas class="priceRange"></canvas>
         </div>
-        <label>％</label>
+        <div class="canvas_div">
+            <canvas class="period"></canvas>
+        </div>
     </div>
-
-    <br>
-
-    <button class="ui blue big button" (click)="start()">start</button>
-
-    <label id="progress"></label>
-
-    <br>
-    <br>
-
-    <label id="result_label"></label>
-    <div class="canvas_div">
-        <canvas class="priceRange"></canvas>
-    </div>
-    <div class="canvas_div">
-        <canvas class="period"></canvas>
-    </div>
-</div>

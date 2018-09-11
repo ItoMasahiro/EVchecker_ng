@@ -66,21 +66,36 @@ export class AbstractEpComponent implements OnInit {
             this.startLoading('株価を取得中');
 
             this.stockDataService.getPricesList(this.codeNumber).then((result) => {
-                console.log('完了したみたい');
+                this.stopLoading();
                 console.log(result);
                 this.epShare.pricesListList = result;
-                this.simulate();
-                console.log(this.resultList);
-                this.calcAndShowResult(this.resultLabelId, this.resultList);
+                /*
+                setTimeoutの関係で、こっちのabstractの方でぐるぐるを表示する処理を書く。ちょっと変かもだけど、
+                ぐるぐるを止める処理は子コンポーネントの方で書く。(simulate()の終了をabstractでは感知できないため)
+                */
+                this.startLoading('シミュレート中');
+                // 少し時間おかないとぐるぐるが表示されないので、0.5秒待ってからシミュレートを開始する
+                setTimeout(() => {
+                    this.simulate();
+                    console.log(this.resultList);
+                    this.calcAndShowResult(this.resultLabelId, this.resultList);
+                }, 500);
+
             });
         } else {
-            // pricesListList取得済みだった場合は、シミュレートからスタート
-            this.simulate();
-            this.calcAndShowResult(this.resultLabelId, this.resultList);
+            this.startLoading('シミュレート中');
+            setTimeout(() => {
+                // pricesListList取得済みだった場合は、シミュレートからスタート
+                this.simulate();
+                this.calcAndShowResult(this.resultLabelId, this.resultList);
+            }, 500);
         }
     }
 
-    simulate(){}
+    /**
+     * オーバーライド用
+     */
+    simulate() { }
 
     /**
     * 期待値を計算し、表示する
@@ -469,6 +484,6 @@ export class AbstractEpComponent implements OnInit {
      */
     stopLoading() {
         this.isLoading = false;
-        this.isLoading = false;
+        this.processText = 'loading';
     }
 }
