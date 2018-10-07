@@ -5,12 +5,11 @@ import { AppRoutingModule } from './/app-routing.module';
 import 'rxjs/Rx';
 import { HttpModule } from '@angular/http';
 
-
 import { AppComponent } from './app.component';
 import { HeroesComponent } from './heroes/heroes.component';
+import { EpMainComponent } from './entry-points/ep-main-page/ep-main.component';
 import { RandomComponent } from './entry-points/random/random.component';
 import { MainPageComponent } from './main-page/main-page.component';
-import { EpMainComponent } from './entry-points/ep-main-page/ep-main.component';
 import { LowerShadowComponent } from './entry-points/lower-shadow/lower-shadow.component';
 import { UpperShadowComponent } from './entry-points/upper-shadow/upper-shadow.component';
 import { DoubleLsComponent } from './entry-points/double-ls/double-ls.component';
@@ -19,8 +18,13 @@ import { DoubleHaramiComponent } from './entry-points/double-harami/double-haram
 import { AkasanpeiComponent } from './entry-points/akasanpei/akasanpei.component';
 import { CustomComponent } from './entry-points/custom/custom.component';
 
+import { TodaysEpMainComponent } from './todays-ep/todays-ep-main/todays-ep-main.component';
+import { CustomTodaysEpComponent } from './todays-ep/custom-todays-ep/custom-todays-ep.component';
+import { AbstractTodaysEpComponent } from './todays-ep/abstract-todays-ep/abstract-todays-ep.component'
+
 import { StockDataService } from './services/stock-data.service';
 import { SharedEpService } from './services/shared-ep.service';
+import { SharedTodaysEpService } from './services/shared-todays-ep.service';
 
 
 @NgModule({
@@ -36,7 +40,10 @@ import { SharedEpService } from './services/shared-ep.service';
     LsInBottomComponent,
     DoubleHaramiComponent,
     AkasanpeiComponent,
-    CustomComponent
+    CustomComponent,
+    TodaysEpMainComponent,
+    CustomTodaysEpComponent,
+    AbstractTodaysEpComponent
   ],
   imports: [
     BrowserModule,
@@ -46,7 +53,8 @@ import { SharedEpService } from './services/shared-ep.service';
   ],
   providers: [
     StockDataService,
-    SharedEpService
+    SharedEpService,
+    SharedTodaysEpService
   ],
   bootstrap: [AppComponent]
 })

@@ -38,7 +38,6 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
   simulate() {
 
     this.startLoading('シミュレート中');
-    console.log('aaa');
 
     const pricesListNum = Object.keys(this.epShare.pricesListList).length;
     if (pricesListNum == 0) {

@@ -30,7 +30,8 @@ export class AbstractEpComponent implements OnInit {
     PATTERN_NARIYUKI = 0;
     PATTERN_GENZAINESASHINE = 1;
     PATTERN_GENZAINESASHINE_RIKAKU = 2;
-    codeNumber = 30;
+    /** シミュレートする銘柄の数 */
+    codeNumber = 1000;
     purchasePattern = 0;
     priceBandLow = 0;
     priceBandHigh = 999999;

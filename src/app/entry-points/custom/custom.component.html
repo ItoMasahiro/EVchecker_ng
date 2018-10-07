@@ -138,6 +138,7 @@
         <div id="ep_bar_conditions">
             <table>
                 <tr>
+                    <td type="text" (focus)="focusFunc()" *ngFor="let td of tdArray"></td>
                 </tr>
             </table>
         </div>
@@ -146,18 +147,18 @@
 
         <button class="ui blue big button" (click)="start()">start</button>
 
-        </div>
-
-        <label id="progress"></label>
-
-        <br>
-        <br>
-
-        <label id="result_label"></label>
-        <div class="canvas_div">
-            <canvas class="priceRange"></canvas>
-        </div>
-        <div class="canvas_div">
-            <canvas class="period"></canvas>
-        </div>
     </div>
+
+    <label id="progress"></label>
+
+    <br>
+    <br>
+
+    <label id="result_label"></label>
+    <div class="canvas_div">
+        <canvas class="priceRange"></canvas>
+    </div>
+    <div class="canvas_div">
+        <canvas class="period"></canvas>
+    </div>
+</div>

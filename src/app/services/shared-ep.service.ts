@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Http } from '@angular/http';
+import { environment } from '../../environments/environment';
 
 @Injectable()
 export class SharedEpService {
@@ -20,7 +21,9 @@ export class SharedEpService {
     */
 
     pricesListList = new Object();
+    /** 株価データのパス */
+    stockDataPath = 'src/assets/stock-data';
 
-    constructor(private http: Http) { }
+    constructor(private http: Http) {}
 
 }

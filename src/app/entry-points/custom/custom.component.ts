@@ -23,6 +23,8 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
     inputLsLength_high = 100;
     /** 入力されたバータイプ(陽線or陰線orどちらでも) */
     barType_input;
+    /** 入力した足の購入条件を表示するためのテーブルのtdの数を調整するための配列。ここにtrueを追加する度にtdが追加される */
+    tdArray = [true];
 
     epConditionList = [];
 
@@ -119,11 +121,10 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
             '下ヒゲ ' + lsStr + '\n' +
             barTypeStr;
 
-        const newtd = document.createElement('td');
-        newtd.appendChild(newLabel);
-        newtd.setAttribute('_ngcontent-c9', '');
-
-        document.querySelector('#ep_bar_conditions table tr').appendChild(newtd);
+        // tdArrayにtrueを追加することでtd要素を追加する
+        this.tdArray.push(true);
+        const tds = document.querySelector('#ep_bar_conditions table tr').getElementsByTagName('td');
+        tds[tds.length - 1].appendChild(newLabel);
 
         this.inputUsLength_low = 0;
         this.inputUsLength_high = 100;

@@ -1,10 +1,10 @@
 <body>
-  <div class="ui orange three item inverted menu">
-    <a class="active item">
+  <div class="ui orange three item inverted menu" id="pageHeader">
+    <a class="active item" (click)="changePage(0)" routerLink="/ep-main">
       シミュレート
     </a>
-    <a class="item">
-      new page
+    <a class="item" (click)="changePage(1)" routerLink="/todays-ep-main">
+      本日のエントリーポイント
     </a>
     <a class="item">
       new page
