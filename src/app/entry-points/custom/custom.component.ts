@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { AbstractEpComponent } from '../abstract-ep/abstract-ep.component';
 import { StockDataService } from '../../services/stock-data.service';
-import { SharedEpService } from '../../services/shared-ep.service'
-import { Router } from '@angular/router';
+import { SharedEpService } from '../../services/shared-ep.service';
+import { SimulateService } from '../../services/simulate.service';
 
 @Component({
     selector: 'ep-custom',
@@ -21,24 +22,34 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
     /** 入力された下ヒゲの長さ */
     inputLsLength_low = 0;
     inputLsLength_high = 100;
+    inputGapUp = 0;
+    inputGapDown = 0;
     /** 入力されたバータイプ(陽線or陰線orどちらでも) */
     barType_input;
     /** 入力した足の購入条件を表示するためのテーブルのtdの数を調整するための配列。ここにtrueを追加する度にtdが追加される */
     tdArray = [true];
+    /** 価格圏判別フラグ。(0:なんでも 1:底値圏) */
+    priceArea = 0;
 
     epConditionList = [];
 
 
     purchaseTrigger = 0;
 
-    constructor(public stockDataService: StockDataService, public epShare: SharedEpService, private router: Router) {
-        super(epShare,stockDataService);
+    constructor(
+        public stockDataService: StockDataService,
+        public epShare: SharedEpService,
+        private router: Router,
+        private simulator: SimulateService) {
+
+        super(epShare, stockDataService);
     }
 
 
     ngOnInit() {
 
     }
+
 
     /**
     * 購入条件変更
@@ -47,6 +58,12 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
     selectPurchasePattern(pattern: number): void {
         this.purchasePattern = pattern;
     }
+
+
+    selectPriceArea(area) {
+        this.priceArea = area;
+    }
+
 
     /**
     * カスタムバーのバータイプ変更
@@ -68,6 +85,9 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
         tmpList['ls_low'] = this.inputLsLength_low;
         tmpList['ls_high'] = this.inputLsLength_high;
         tmpList['barType'] = this.barType_input;
+        tmpList['gapUp'] = this.inputGapUp;
+        tmpList['gapDown'] = this.inputGapDown;
+
         this.epConditionList.push(tmpList);
 
 
@@ -78,6 +98,9 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
         let usStr;
         let realBodyStr;
         let lsStr;
+        let gapUpStr;
+        let gapDownStr;
+
         let barTypeStr;
 
         if (!this.inputUsLength_low || this.inputUsLength_low < 0) {
@@ -107,6 +130,19 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
         lsStr = this.inputLsLength_low + '% ~ ' + this.inputLsLength_high + '%';
 
 
+        if (!this.inputGapUp || this.inputGapUp < 0) {
+            this.inputGapUp = 0;
+        }
+        gapUpStr = this.inputGapUp + '% ~ ';
+
+        if (!this.inputGapDown || this.inputGapDown < 0) {
+            this.inputGapDown = 0;
+        }
+        gapDownStr = this.inputGapDown + '% ~ ';
+
+
+
+
         if (this.barType_input == 1) {
             barTypeStr = '陽線'
         } else if (this.barType_input == -1) {
@@ -119,6 +155,8 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
             '上ヒゲ ' + usStr + '\n' +
             '実線　 ' + realBodyStr + '\n' +
             '下ヒゲ ' + lsStr + '\n' +
+            'GU ' + gapUpStr + '\n' +
+            'GD ' + gapDownStr + '\n' +
             barTypeStr;
 
         // tdArrayにtrueを追加することでtd要素を追加する
@@ -132,7 +170,48 @@ export class CustomComponent extends AbstractEpComponent implements OnInit {
         this.inputRealBodyLength_high = 100;
         this.inputLsLength_low = 0;
         this.inputLsLength_high = 100;
+        this.inputGapUp = 0;
+        this.inputGapDown = 0;
         this.barType_input = undefined;
+    }
+
+
+    startSimulate() {
+        this.startLoading('検証中');
+
+        var bottomDecisionDays;
+        if (this.priceArea == this.PRICEAREA_BOTTOM) {
+            bottomDecisionDays = this.defaultBottomDecisionDays;
+        }
+
+        const epConditions =
+        {
+            ep: this.epConditionList.concat(),
+            option: {
+                priceBandLow: this.priceBandLow,
+                priceBandHigh: this.priceBandHigh,
+                purchasePattern: this.purchasePattern,
+                periodScale: this.periodScale.concat(),
+                priceRangeScale: this.priceRangeScale.concat(),
+                fee: this.fee,
+                sellPattern: this.sellPattern,
+                holdDays: this.holdDays,
+                bottomDecisionDays: bottomDecisionDays,
+            }
+        }
+        this.simulator.simulate(epConditions).then((data) => {
+
+            this.showResult(data['body']);
+            this.stopLoading()
+
+        }).catch((err) => {
+
+            console.log('bbbbb');
+            console.log(err);
+            document.getElementById(this.resultLabelId).innerText = err.error.body;
+            this.stopLoading()
+
+        })
     }
 
 

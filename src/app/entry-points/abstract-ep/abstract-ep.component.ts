@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 
 import { StockDataService } from '../../services/stock-data.service';
 import { SharedEpService } from '../../services/shared-ep.service';
+import { THIS_EXPR, areAllEquivalent } from '@angular/compiler/src/output/output_ast';
 
 declare var Chart: any;
 
@@ -30,24 +31,35 @@ export class AbstractEpComponent implements OnInit {
     PATTERN_NARIYUKI = 0;
     PATTERN_GENZAINESASHINE = 1;
     PATTERN_GENZAINESASHINE_RIKAKU = 2;
+    SELLPATTERN_INSEN = 0;
+    SELLPATTERN_HOLD_DAYS = 1;
+    PRICEAREA_ANYTHING = 0;
+    PRICEAREA_BOTTOM = 1;
+
     /** シミュレートする銘柄の数 */
-    codeNumber = 1000;
+    codeNumber = 2;
     purchasePattern = 0;
     priceBandLow = 0;
     priceBandHigh = 999999;
     /** 取引1回あたりにかかる手数料(%) */
     fee = 0;
     /** 価格帯別グラフの目盛り */
-    priceRangeScale = [50, 100, 200, 300, 400, 600, 800, 1200, 1600, 3200, 4800, 6400, 12800, 25600];
+    priceRangeScale = [25, 50, 100, 200, 300, 400, 600, 800, 1200, 1600, 3200, 4800, 6400, 12800, 25600];
     /** 期間別グラフの目盛り */
-    periodScale = ['2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018'];
-
+    periodScale = ['2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018'];
     /** ローディングぐるぐるを出すかどうか */
     isLoading = false;
     /** ローディングぐるぐるの下に表示する文字 */
     processText = 'loading'
-
     resultLabelId = 'result_label';
+    sellPattern = 0;
+    /** 売却条件で一定期間保持が選択された場合に何日間保持するか */
+    holdDays = 10;
+    /** 売却条件が一定期間保持か否か */
+    isHoldingAtDays = false;
+    /** 何日間を見て底値と判断するか、のデフォルト値。ごちゃごちゃするため、ユーザーからはこれをいじれない。(今の所) */
+    defaultBottomDecisionDays = 100;
+
 
     resultList = [];
 
@@ -57,7 +69,6 @@ export class AbstractEpComponent implements OnInit {
     }
 
     start() {
-
 
         // 0個目の要素を取得してみて、取得できなかったらpricesListList未取得と判断(new Object()のやつなので、lengthは使えない)
         if (!this.epShare.pricesListList[0]) {
@@ -74,7 +85,7 @@ export class AbstractEpComponent implements OnInit {
                 setTimeoutの関係で、こっちのabstractの方でぐるぐるを表示する処理を書く。ちょっと変かもだけど、
                 ぐるぐるを止める処理は子コンポーネントの方で書く。(simulate()の終了をabstractでは感知できないため)
                 */
-                this.startLoading('シミュレート中');
+                this.startLoading('検証中');
                 // 少し時間おかないとぐるぐるが表示されないので、0.5秒待ってからシミュレートを開始する
                 setTimeout(() => {
                     this.simulate();
@@ -84,7 +95,7 @@ export class AbstractEpComponent implements OnInit {
 
             });
         } else {
-            this.startLoading('シミュレート中');
+            this.startLoading('検証中');
             setTimeout(() => {
                 // pricesListList取得済みだった場合は、シミュレートからスタート
                 this.simulate();
@@ -208,8 +219,393 @@ export class AbstractEpComponent implements OnInit {
             // canvasが見つかれば、そこにグラフを描画
             this.createAndDisplayGraphByPeriod(canvasElemByPeriod, dataByPeriod);
         }
+    }
+
+    /**
+     * シミュレート結果を画面に表示する
+     * @param result シミュレート結果
+     */
+    showResult(result) {
+
+        const resultLabel = document.getElementById(this.resultLabelId);
+        let plus = '';
+        if (result['ev'] > 0) {
+            plus = '+';
+        }
+        resultLabel.innerText = result['simpleTradeHistory'].join('\n');
+        resultLabel.innerText = '期待値 = ' + plus + result['ev'] + '%\nトレード回数 : ' + result['tradeTimes'] + '\n' + result['win'] + '勝 ' + result['lose'] + '敗 ' + result['draw'] + '分け (勝率:' + Math.round(((result['win'] * 100) / (result['win'] + result['lose'] + result['draw'])) * 100) / 100 + '%)\n\n' + resultLabel.innerText;
+
+        this.drawGraphByPriceRange(document.getElementById('priceRange'), result);
+        this.drawGraphByPeriod(document.getElementById('period'), result);
+    }
+
+
+
+    /**
+    * 価格帯別のグラフを描画する
+    * @param {Element} canvasElem グラフを表示するcanvasエレメント
+    * @param {Array} resuList 価格帯別のリザルトリスト
+    */
+    drawGraphByPriceRange(canvasElem: Element, resuList: Array<Array<number>>): void {
+        // 引数でエレメントを受け取る時、idを受け取ったりエレメント本体を受け取ったりと統一性がなくて気持ち悪くなっちゃった。
+        // でも直そうと思っても結構きつい
+
+        /*
+        すでにグラフが描画されている状態で別のグラフを上から再描画すると、裏に元々のグラフが残ってしまいちょっとバグった。
+        それを防ぐためには、new Chart()で返されるオブジェクトをグローバルに保持しておいて、再描画したい時に .update() メソッドを呼ぶとかなんとかネットに書いてあったけど、
+        あんまりむやみにグローバル変数を増やしたくなかったので、気合いで別の方法でグラフの再描画を実現した。
+        具体的には、最初にいったん<canvas>タグを消して、再度新しい<canvas>タグを生成して同じ場所に配置している。
+        */
+        const parent = canvasElem.parentElement;
+        // いったん<canvas>を消す
+        canvasElem.remove();
+        const newCanvas = document.createElement('canvas');
+        newCanvas.setAttribute('class', 'priceRange');
+        newCanvas.setAttribute('id', 'priceRange');
+        // 新しい<canvas>を作成し、同じ場所に配置する
+        parent.appendChild(newCanvas);
+        canvasElem = parent.getElementsByTagName('canvas')[0];
+
+        /** 価格帯別グラフのそれぞれの値(期待値) */
+        const EVAveByPriceRange = [];
+        /** 価格帯別トレード回数トレード回数 */
+        const tradeTimesByPriceRange = [];
+        /** 価格帯別グラフの目盛り */
+        const labels = [];
+        for (let i = 0; i < resuList['resultByPriceRange'].length; i++) {
+
+            EVAveByPriceRange.push(resuList['resultByPriceRange'][i]['ev']);
+
+            tradeTimesByPriceRange.push(resuList['resultByPriceRange'][i]['tradeTimes'])
+
+            // グラフの目盛りを作成
+            var scaleLabelText = '';
+            if (Number(i) == 0) {
+                scaleLabelText = '0 ~ ' + this.priceRangeScale[i];
+            } else if (Number(i) == resuList['resultByPriceRange'].length - 1) {
+                scaleLabelText = (this.priceRangeScale[Number(i) - 1] + 1) + ' ~ '
+            } else {
+                scaleLabelText = (this.priceRangeScale[Number(i) - 1] + 1) + ' ~ ' + this.priceRangeScale[i];
+            }
+
+            labels.push(scaleLabelText);
+        }
+
+        // グラフの目盛り調整のため、期待値、トレード回数それぞれの最大値を求める
+        var EVmax = 0;
+        var tradeTimeMax = 0;
+        for (var i in EVAveByPriceRange) {
+            if (Math.abs(EVAveByPriceRange[i]) > EVmax) {
+                EVmax = Math.abs(EVAveByPriceRange[i]);
+            }
+
+            if (tradeTimesByPriceRange[i] > tradeTimeMax) {
+                tradeTimeMax = tradeTimesByPriceRange[i];
+            }
+        }
+
+        var complexChartOption = {
+            responsive: true,
+            title: {
+                display: true,
+                fontSize: 18,
+                text: '価格帯別'
+            },
+            scales: {
+                yAxes: [{
+                    id: "EV",   // Y軸のID
+                    type: "linear",   // linear固定 
+                    position: "left", // どちら側に表示される軸か？
+                    ticks: {
+                        /*
+                        マイナスの期待値がある場合、期待値のグラフとトレード回数のグラフで0の位置がずれてしまうため、
+                        グラフの目盛りの最大値と最小値を合わせることで0の位置を真ん中に固定する。
+                        最大値の1割分余裕を持たせることで、最大値の棒が天井にくっついてしまうのを防ぐ。
+                        */
+                        max: EVmax + (EVmax * 0.1),
+                        min: -(EVmax + (EVmax * 0.1)),
+                    }
+                }, {
+                    id: "tradeTime",
+                    type: "linear",
+                    position: "right",
+                    ticks: {
+                        max: Math.round(tradeTimeMax + (tradeTimeMax * 0.1)),
+                        min: -Math.round((tradeTimeMax + (tradeTimeMax * 0.1))),
+                    }
+                }],
+            }
+        };
+
+        var myChart = new Chart(canvasElem, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '期待値',
+                    data: EVAveByPriceRange,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    hoverBackgroundColor: "rgba(54, 162, 300, 1)",
+                    borderWidth: 1,
+                    yAxisID: "EV",
+                },
+                {
+                    type: 'bar',
+                    label: 'トレード回数',
+                    data: tradeTimesByPriceRange,
+                    // backgroundColor: 'rgba(255,99,132,0.3)',
+                    backgroundColor: 'rgba(0,255,0,0.3)',
+                    // hoverBackgroundColor: "rgba(255,99,132,0.6)",
+                    hoverBackgroundColor: "rgba(0,255,0,0.6)",
+                    borderWidth: 1,
+                    yAxisID: "tradeTime"
+                }]
+            },
+
+            options: complexChartOption
+        });
+    }
+
+
+    /**
+    * 期間別のグラフを描画する
+    * @param {Element} canvasElem グラフを表示するcanvasエレメント
+    * @param {Array} resuList 期間別のリザルトリスト
+    */
+    drawGraphByPeriod(canvasElem: Element, resuList: Array<Array<number>>): void {
+
+        /*
+        すでにグラフが描画されている状態で別のグラフを上から再描画すると、裏に元々のグラフが残ってしまいちょっとバグった。
+        それを防ぐためには、new Chart()で返されるオブジェクトをグローバルに保持しておいて、再描画したい時に .update() メソッドを呼ぶとかなんとかネットに書いてあったけど、
+        あんまりむやみにグローバル変数を増やしたくなかったので、気合いで別の方法でグラフの再描画を実現した。
+        具体的には、最初にいったん<canvas>タグを消して、再度新しい<canvas>タグを生成して同じ場所に配置している。
+        */
+        const parent = canvasElem.parentElement;
+        // いったん<canvas>を消す
+        canvasElem.remove();
+        const newCanvas = document.createElement('canvas');
+        newCanvas.setAttribute('class', 'period');
+        newCanvas.setAttribute('id', 'period');
+        // 新しい<canvas>を作成し、同じ場所に配置する
+        parent.appendChild(newCanvas);
+        canvasElem = parent.getElementsByTagName('canvas')[0];
+
+        /** 期間別グラフのそれぞれの値(期待値) */
+        const EVAveByPeriod = [];
+        /** 期間別トレード回数 */
+        const tradeTimesByPeriod = [];
+        for (let i = 0; i < resuList['resultByPeriod'].length; i++) {
+
+            EVAveByPeriod.push(resuList['resultByPeriod'][i]['ev']);
+
+            // 期間別のトレード回数を記憶
+            tradeTimesByPeriod.push(resuList['resultByPeriod'][i]['tradeTimes']);
+
+        }
+
+        // グラフの目盛り調整のため、期待値、トレード回数それぞれの最大値を求める
+        var EVmax = 0;
+        var tradeTimeMax = 0;
+        for (var i in EVAveByPeriod) {
+            if (Math.abs(EVAveByPeriod[i]) > EVmax) {
+                EVmax = Math.abs(EVAveByPeriod[i]);
+            }
+
+            if (tradeTimesByPeriod[i] > tradeTimeMax) {
+                tradeTimeMax = tradeTimesByPeriod[i];
+            }
+        }
+
+        var complexChartOption = {
+            responsive: true,
+            title: {
+                display: true,
+                fontSize: 18,
+                text: '期間別'
+            },
+            scales: {
+                yAxes: [{
+                    id: "EV",   // Y軸のID
+                    type: "linear",   // linear固定 
+                    position: "left", // どちら側に表示される軸か？
+                    ticks: {
+                        /*
+                        マイナスの期待値がある場合、期待値のグラフとトレード回数のグラフで0の位置がずれてしまうため、
+                        グラフの目盛りの最大値と最小値を合わせることで0の位置を真ん中に固定する。
+                        最大値の1割分余裕を持たせることで、最大値の棒が天井にくっついてしまうのを防ぐ。
+                        */
+                        max: EVmax + (EVmax * 0.1),
+                        min: -(EVmax + (EVmax * 0.1)),
+                    }
+                }, {
+                    id: "tradeTime",
+                    type: "linear",
+                    position: "right",
+                    ticks: {
+                        max: Math.round(tradeTimeMax + (tradeTimeMax * 0.1)),
+                        min: -Math.round((tradeTimeMax + (tradeTimeMax * 0.1))),
+                    }
+                }],
+            }
+        };
+
+        var myChart = new Chart(canvasElem, {
+            type: 'bar',
+            data: {
+                labels: this.periodScale,
+                datasets: [{
+                    label: '期待値',
+                    data: EVAveByPeriod,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    hoverBackgroundColor: "rgba(54, 162, 300, 1)",
+                    borderWidth: 1,
+                    yAxisID: "EV",
+                },
+                {
+                    type: 'bar',
+                    label: 'トレード回数',
+                    data: tradeTimesByPeriod,
+                    // backgroundColor: 'rgba(255,99,132,0.3)',
+                    backgroundColor: 'rgba(0,255,0,0.3)',
+                    // hoverBackgroundColor: "rgba(255,99,132,0.6)",
+                    hoverBackgroundColor: "rgba(0,255,0,0.6)",
+                    borderWidth: 1,
+                    yAxisID: "tradeTime"
+                }]
+            },
+
+            options: complexChartOption
+        });
 
     }
+
+
+
+    /**
+    * 期間別のグラフを描画する
+    * @param {Element} canvasElem グラフを表示するcanvasエレメント
+    * @param {Array} resuList 期間別のリザルトリスト
+    */
+    createAndDisplayGraphByPeriod(canvasElem: Element, resuList: Array<Array<number>>): void {
+
+
+        console.log('resultList===')
+        console.log(resuList)
+
+        /*
+        すでにグラフが描画されている状態で別のグラフを上から再描画すると、裏に元々のグラフが残ってしまいちょっとバグった。
+        それを防ぐためには、new Chart()で返されるオブジェクトをグローバルに保持しておいて、再描画したい時に .update() メソッドを呼ぶとかなんとかネットに書いてあったけど、
+        あんまりむやみにグローバル変数を増やしたくなかったので、気合いで別の方法でグラフの再描画を実現した。
+        具体的には、最初にいったん<canvas>タグを消して、再度新しい<canvas>タグを生成して同じ場所に配置している。
+        */
+        const parent = canvasElem.parentElement;
+        // いったん<canvas>を消す
+        canvasElem.remove();
+        const newCanvas = document.createElement('canvas');
+        newCanvas.setAttribute('class', 'period');
+        // 新しい<canvas>を作成し、同じ場所に配置する
+        parent.appendChild(newCanvas);
+        canvasElem = parent.getElementsByTagName('canvas')[0];
+
+        /** 期間別グラフのそれぞれの値(期待値) */
+        const EVAveByPeriod = [];
+        /** 期間別トレード回数 */
+        const tradeTimesByPeriod = [];
+        for (var i in resuList) {
+
+            // 期間別の期待値を求める
+            var sum = 0;
+            var ave = 0;
+            for (var j in resuList[i]) {
+                sum += resuList[i][j];
+            }
+            if (resuList[i].length != 0) {
+                ave = sum / resuList[i].length;
+            }
+
+            EVAveByPeriod.push(ave);
+
+            // 期間別のトレード回数を記憶
+            tradeTimesByPeriod.push(resuList[i].length);
+
+        }
+
+        // グラフの目盛り調整のため、期待値、トレード回数それぞれの最大値を求める
+        var EVmax = 0;
+        var tradeTimeMax = 0;
+        for (var i in EVAveByPeriod) {
+            if (Math.abs(EVAveByPeriod[i]) > EVmax) {
+                EVmax = Math.abs(EVAveByPeriod[i]);
+            }
+
+            if (tradeTimesByPeriod[i] > tradeTimeMax) {
+                tradeTimeMax = tradeTimesByPeriod[i];
+            }
+        }
+
+        var complexChartOption = {
+            responsive: true,
+            title: {
+                display: true,
+                fontSize: 18,
+                text: '期間別'
+            },
+            scales: {
+                yAxes: [{
+                    id: "EV",   // Y軸のID
+                    type: "linear",   // linear固定 
+                    position: "left", // どちら側に表示される軸か？
+                    ticks: {
+                        /*
+                        マイナスの期待値がある場合、期待値のグラフとトレード回数のグラフで0の位置がずれてしまうため、
+                        グラフの目盛りの最大値と最小値を合わせることで0の位置を真ん中に固定する。
+                        最大値の1割分余裕を持たせることで、最大値の棒が天井にくっついてしまうのを防ぐ。
+                        */
+                        max: EVmax + (EVmax * 0.1),
+                        min: -(EVmax + (EVmax * 0.1)),
+                    }
+                }, {
+                    id: "tradeTime",
+                    type: "linear",
+                    position: "right",
+                    ticks: {
+                        max: Math.round(tradeTimeMax + (tradeTimeMax * 0.1)),
+                        min: -Math.round((tradeTimeMax + (tradeTimeMax * 0.1))),
+                    }
+                }],
+            }
+        };
+
+        var myChart = new Chart(canvasElem, {
+            type: 'bar',
+            data: {
+                labels: this.periodScale,
+                datasets: [{
+                    label: '期待値',
+                    data: EVAveByPeriod,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    hoverBackgroundColor: "rgba(54, 162, 300, 1)",
+                    borderWidth: 1,
+                    yAxisID: "EV",
+                },
+                {
+                    type: 'bar',
+                    label: 'トレード回数',
+                    data: tradeTimesByPeriod,
+                    backgroundColor: 'rgba(255,99,132,0.3)',
+                    hoverBackgroundColor: "rgba(255,99,132,0.6)",
+                    borderWidth: 1,
+                    yAxisID: "tradeTime"
+                }]
+            },
+
+            options: complexChartOption
+        });
+
+    }
+
+
+
 
     /**
     * 価格帯別のグラフを描画する
@@ -348,128 +744,7 @@ export class AbstractEpComponent implements OnInit {
 
 
 
-    /**
-    * 期間別のグラフを描画する
-    * @param {Element} canvasElem グラフを表示するcanvasエレメント
-    * @param {Array} resuList 期間別のリザルトリスト
-    */
-    createAndDisplayGraphByPeriod(canvasElem: Element, resuList: Array<Array<number>>): void {
 
-
-        console.log('resultList===')
-        console.log(resuList)
-
-        /*
-        すでにグラフが描画されている状態で別のグラフを上から再描画すると、裏に元々のグラフが残ってしまいちょっとバグった。
-        それを防ぐためには、new Chart()で返されるオブジェクトをグローバルに保持しておいて、再描画したい時に .update() メソッドを呼ぶとかなんとかネットに書いてあったけど、
-        あんまりむやみにグローバル変数を増やしたくなかったので、気合いで別の方法でグラフの再描画を実現した。
-        具体的には、最初にいったん<canvas>タグを消して、再度新しい<canvas>タグを生成して同じ場所に配置している。
-        */
-        const parent = canvasElem.parentElement;
-        // いったん<canvas>を消す
-        canvasElem.remove();
-        const newCanvas = document.createElement('canvas');
-        newCanvas.setAttribute('class', 'period');
-        // 新しい<canvas>を作成し、同じ場所に配置する
-        parent.appendChild(newCanvas);
-        canvasElem = parent.getElementsByTagName('canvas')[0];
-
-        /** 期間別グラフのそれぞれの値(期待値) */
-        const EVAveByPeriod = [];
-        /** 期間別トレード回数 */
-        const tradeTimesByPeriod = [];
-        for (var i in resuList) {
-
-            // 期間別の期待値を求める
-            var sum = 0;
-            var ave = 0;
-            for (var j in resuList[i]) {
-                sum += resuList[i][j];
-            }
-            if (resuList[i].length != 0) {
-                ave = sum / resuList[i].length;
-            }
-
-            EVAveByPeriod.push(ave);
-
-            // 期間別のトレード回数を記憶
-            tradeTimesByPeriod.push(resuList[i].length);
-
-        }
-
-        // グラフの目盛り調整のため、期待値、トレード回数それぞれの最大値を求める
-        var EVmax = 0;
-        var tradeTimeMax = 0;
-        for (var i in EVAveByPeriod) {
-            if (Math.abs(EVAveByPeriod[i]) > EVmax) {
-                EVmax = Math.abs(EVAveByPeriod[i]);
-            }
-
-            if (tradeTimesByPeriod[i] > tradeTimeMax) {
-                tradeTimeMax = tradeTimesByPeriod[i];
-            }
-        }
-
-        var complexChartOption = {
-            responsive: true,
-            title: {
-                display: true,
-                fontSize: 18,
-                text: '期間別'
-            },
-            scales: {
-                yAxes: [{
-                    id: "EV",   // Y軸のID
-                    type: "linear",   // linear固定 
-                    position: "left", // どちら側に表示される軸か？
-                    ticks: {
-                        /*
-                        マイナスの期待値がある場合、期待値のグラフとトレード回数のグラフで0の位置がずれてしまうため、
-                        グラフの目盛りの最大値と最小値を合わせることで0の位置を真ん中に固定する。
-                        最大値の1割分余裕を持たせることで、最大値の棒が天井にくっついてしまうのを防ぐ。
-                        */
-                        max: EVmax + (EVmax * 0.1),
-                        min: -(EVmax + (EVmax * 0.1)),
-                    }
-                }, {
-                    id: "tradeTime",
-                    type: "linear",
-                    position: "right",
-                    ticks: {
-                        max: Math.round(tradeTimeMax + (tradeTimeMax * 0.1)),
-                        min: -Math.round((tradeTimeMax + (tradeTimeMax * 0.1))),
-                    }
-                }],
-            }
-        };
-
-        var myChart = new Chart(canvasElem, {
-            type: 'bar',
-            data: {
-                labels: this.periodScale,
-                datasets: [{
-                    label: '期待値',
-                    data: EVAveByPeriod,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    hoverBackgroundColor: "rgba(54, 162, 300, 1)",
-                    borderWidth: 1,
-                    yAxisID: "EV",
-                },
-                {
-                    type: 'bar',
-                    label: 'トレード回数',
-                    data: tradeTimesByPeriod,
-                    backgroundColor: 'rgba(255,99,132,0.3)',
-                    hoverBackgroundColor: "rgba(255,99,132,0.6)",
-                    borderWidth: 1,
-                    yAxisID: "tradeTime"
-                }]
-            },
-
-            options: complexChartOption
-        });
-
-    }
 
     /**
      * ローディングを開始する
@@ -487,4 +762,26 @@ export class AbstractEpComponent implements OnInit {
         this.isLoading = false;
         this.processText = 'loading';
     }
+
+    /**
+     * 購入条件変更
+     * @param {購入条件} pattern 0:成行 1:現在値指値 ...
+     */
+    selectPurchasePattern(pattern: number): void {
+        this.purchasePattern = pattern;
+    }
+
+    /**
+     * 売却条件変更
+     * @param pattern 0:陰線売り 1:日数売り
+     */
+    selectSellPattern(pattern: number): void {
+        this.sellPattern = pattern;
+        if (this.sellPattern == this.SELLPATTERN_HOLD_DAYS) {
+            this.isHoldingAtDays = true;
+        } else {
+            this.isHoldingAtDays = false;
+        }
+    }
+
 }

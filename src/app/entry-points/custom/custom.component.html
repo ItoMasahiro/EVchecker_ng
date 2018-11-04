@@ -4,7 +4,6 @@
         <div class="ui active inverted dimmer" *ngIf="isLoading">
             <div class="ui medium text loader">{{processText}}</div>
         </div>
-
         <h2>カスタム</h2>
         <div class="ui form">
 
@@ -38,13 +37,63 @@
         </div>
 
         <br>
+        <br>
+
+        <div>
+            <h4>売却条件</h4>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input type="radio" [value]="0" [checked]="sellPattern == 0">
+                    <label (click)="selectSellPattern(0)">陰線出現で売却</label>
+                </div>
+            </div>
+            <br>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input type="radio" [value]="1" [checked]="sellPattern == 1">
+                    <label (click)="selectSellPattern(1)">一定期間保持</label>
+                </div>
+            </div>
+            <div class="ui mini input hold-daynum-input">
+                <input type="number" [(ngModel)]="holdDays" [hidden]=!isHoldingAtDays>
+            </div>
+            <label [hidden]=!isHoldingAtDays>日</label>
+        </div>
+
+        <br>
+
+        <div class="ui form">
+            <br>
+            <div class="inline fields">
+                <h4>価格圏
+                </h4>
+                <form name="myForm" ng-controller="Ctrl">
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="0" [checked]="priceArea == 0">
+                            <label (click)="selectPriceArea(0)">なんでも</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="1" [checked]="priceArea == 1">
+                            <label (click)="selectPriceArea(1)">底値圏</label>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <br>
+        <br>
 
         <div class="inline fields">
             <h4>価格帯絞り込み</h4>
             <div class="ui small input">
                 <input type="number" [(ngModel)]="priceBandLow" class="price_band_input">
             </div>
-            <label>円　〜</label>
+            <label>円　〜　</label>
             <div class="ui small input">
                 <input type="number" [(ngModel)]="priceBandHigh" class="price_band_input">
             </div>
@@ -65,7 +114,7 @@
                     <div class="ui small input">
                         <input type="number" [(ngModel)]="inputUsLength_low">
                     </div>
-                    <label>%　〜</label>
+                    <label>%　〜　</label>
                     <div class="ui small input">
                         <input type="number" [(ngModel)]="inputUsLength_high">
                     </div>
@@ -80,7 +129,7 @@
                     <div class="ui small input">
                         <input type="number" [(ngModel)]="inputRealBodyLength_low">
                     </div>
-                    <label>%　〜</label>
+                    <label>%　〜　</label>
                     <div class="ui small input">
                         <input type="number" [(ngModel)]="inputRealBodyLength_high">
                     </div>
@@ -95,11 +144,33 @@
                     <div class="ui small input">
                         <input type="number" [(ngModel)]="inputLsLength_low">
                     </div>
-                    <label>%　〜</label>
+                    <label>%　〜　</label>
                     <div class="ui small input">
                         <input type="number" [(ngModel)]="inputLsLength_high">
                     </div>
                     <label>%</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label>ギャップアップ</label>
+                </td>
+                <td>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputGapUp">
+                    </div>
+                    <label>%　〜　</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label>ギャップダウン</label>
+                </td>
+                <td>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputGapDown">
+                    </div>
+                    <label>%　〜　</label>
                 </td>
             </tr>
         </table>
@@ -145,7 +216,7 @@
 
         <br>
 
-        <button class="ui blue big button" (click)="start()">start</button>
+        <button class="ui blue big button" (click)="startSimulate()">start</button>
 
     </div>
 
@@ -156,9 +227,9 @@
 
     <label id="result_label"></label>
     <div class="canvas_div">
-        <canvas class="priceRange"></canvas>
+        <canvas class="priceRange" id="priceRange"></canvas>
     </div>
     <div class="canvas_div">
-        <canvas class="period"></canvas>
+        <canvas class="period" id="period"></canvas>
     </div>
 </div>

@@ -3,6 +3,8 @@ import { AbstractEpComponent } from '../abstract-ep/abstract-ep.component';
 
 import { StockDataService } from '../../services/stock-data.service';
 import { SharedEpService } from '../../services/shared-ep.service';
+import { SimulateService } from '../../services/simulate.service';
+import { environment } from 'src/environments/environment';
 
 
 @Component({
@@ -17,7 +19,11 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
   /** 適当買いシミュレート時の生成する乱数の数( 1/??? の確率で購入) */
   purchaseTriggerRandomNumber = 100;
 
-  constructor(public stockDataService: StockDataService, public epShare: SharedEpService) {
+  constructor(
+    public stockDataService: StockDataService,
+    public epShare: SharedEpService,
+    private simulator: SimulateService
+  ) {
     super(epShare, stockDataService);
   }
 
@@ -32,12 +38,51 @@ export class RandomComponent extends AbstractEpComponent implements OnInit {
     this.purchasePattern = pattern;
   }
 
+
+  startSimulate() {
+    this.startLoading('検証中');
+
+    const epConditions =
+    {
+      randomNumber: this.purchaseTriggerRandomNumber,
+      option: {
+        priceBandLow: this.priceBandLow,
+        priceBandHigh: this.priceBandHigh,
+        purchasePattern: this.purchasePattern,
+        periodScale: this.periodScale.concat(),
+        priceRangeScale: this.priceRangeScale.concat(),
+        fee: this.fee,
+        sellPattern: this.sellPattern,
+        holdDays: this.holdDays
+      }
+    }
+    this.simulator.simulateRandom(epConditions).then((data) => {
+
+      this.showResult(data['body']);
+      this.stopLoading()
+
+    }).catch((err) => {
+
+      console.log('エラー');
+      console.log(err);
+
+      document.getElementById(this.resultLabelId).innerText = err.error.body;
+
+      this.stopLoading()
+
+    })
+  }
+
+
+
+
+
   /**
    * ランダムでのシミュレーション。そもそも適当にトレードしたらどうなるのかをシミュレートする
    */
   simulate() {
 
-    this.startLoading('シミュレート中');
+    this.startLoading('検証中');
 
     const pricesListNum = Object.keys(this.epShare.pricesListList).length;
     if (pricesListNum == 0) {

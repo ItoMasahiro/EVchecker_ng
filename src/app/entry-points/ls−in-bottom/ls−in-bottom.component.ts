@@ -3,6 +3,7 @@ import { AbstractEpComponent } from '../abstract-ep/abstract-ep.component';
 import { StockDataService } from '../../services/stock-data.service';
 import { SharedEpService } from '../../services/shared-ep.service';
 import { Router } from '@angular/router';
+import { SimulateService } from '../../services/simulate.service';
 
 @Component({
     selector: 'ep-ls-in-bottom',
@@ -13,12 +14,17 @@ export class LsInBottomComponent extends AbstractEpComponent implements OnInit {
 
 
     /** 底値下ヒゲシミュレート時の過去何本の足を見て底値と判断するか */
-    areasJudgementStandardLsInBottom = 60;
+    areasJudgementStandardLsInBottom = 100;
 
     purchaseTrigger = 0;
 
-    constructor(public stockDataService: StockDataService, public epShare: SharedEpService, private router: Router) {
-        super(epShare,stockDataService);
+    constructor(
+        public stockDataService: StockDataService,
+        public epShare: SharedEpService,
+        private router: Router,
+        private simulator: SimulateService
+    ) {
+        super(epShare, stockDataService);
     }
 
     ngOnInit() {
@@ -32,6 +38,47 @@ export class LsInBottomComponent extends AbstractEpComponent implements OnInit {
     selectPurchasePattern(pattern: number): void {
         this.purchasePattern = pattern;
     }
+
+
+    startSimulate() {
+        this.startLoading('検証中');
+
+        const epConditions =
+        {
+            ep: [
+                {
+                    ls_low: this.purchaseTrigger
+                }
+            ],
+            option: {
+                priceBandLow: this.priceBandLow,
+                priceBandHigh: this.priceBandHigh,
+                purchasePattern: this.purchasePattern,
+                periodScale: this.periodScale.concat(),
+                priceRangeScale: this.priceRangeScale.concat(),
+                fee: this.fee,
+                bottomDecisionDays: this.areasJudgementStandardLsInBottom,
+                sellPattern: this.sellPattern,
+                holdDays: this.holdDays
+            }
+        }
+        this.simulator.simulate(epConditions).then((data) => {
+
+            this.showResult(data['body']);
+            this.stopLoading()
+
+        }).catch((err) => {
+
+            console.log('エラー');
+            console.log(err);
+
+            document.getElementById(this.resultLabelId).innerText = err.error.body;
+
+            this.stopLoading()
+
+        })
+    }
+
 
     /**
      * 底値下ヒゲでのシミュレーション

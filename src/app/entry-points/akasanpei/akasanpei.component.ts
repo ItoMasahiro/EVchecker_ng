@@ -3,6 +3,7 @@ import { AbstractEpComponent } from '../abstract-ep/abstract-ep.component';
 import { StockDataService } from '../../services/stock-data.service';
 import { SharedEpService } from '../../services/shared-ep.service';
 import { Router } from '@angular/router';
+import { SimulateService } from '../../services/simulate.service';
 
 @Component({
     selector: 'ep-akasanpei',
@@ -17,21 +18,65 @@ export class AkasanpeiComponent extends AbstractEpComponent implements OnInit {
 
     purchaseTrigger = 0;
 
-    constructor(public stockDataService: StockDataService, public epShare: SharedEpService, private router: Router) {
-        super(epShare,stockDataService);
+    constructor(
+        public stockDataService: StockDataService,
+        public epShare: SharedEpService,
+        private router: Router,
+        private simulator: SimulateService
+    ) {
+        super(epShare, stockDataService);
     }
 
     ngOnInit() {
     }
 
 
-    /**
-    * 購入条件変更
-    * @param {購入条件} pattern 0:成行 1:現在値指値 ...
-    */
-    selectPurchasePattern(pattern: number): void {
-        this.purchasePattern = pattern;
+    startSimulate() {
+        this.startLoading('検証中');
+
+        const epConditions =
+        {
+            ep: [
+                {
+                    barType: 1
+                },
+                {
+                    barType: 1
+                },
+                {
+                    barType: 1,
+                    us_high: this.invalidUsInAkasanpei
+                }
+            ],
+            option: {
+                priceBandLow: this.priceBandLow,
+                priceBandHigh: this.priceBandHigh,
+                purchasePattern: this.purchasePattern,
+                periodScale: this.periodScale.concat(),
+                priceRangeScale: this.priceRangeScale.concat(),
+                fee: this.fee,
+                sellPattern: this.sellPattern,
+                holdDays: this.holdDays
+            }
+        }
+        this.simulator.simulate(epConditions).then((data) => {
+
+            this.showResult(data['body']);
+            this.stopLoading()
+
+        }).catch((err) => {
+
+            console.log('エラー');
+            console.log(err);
+            document.getElementById(this.resultLabelId).innerText = err.error.body;
+            this.stopLoading()
+
+        })
     }
+
+
+
+
 
     /**
      * 赤三兵でのシミュレーション

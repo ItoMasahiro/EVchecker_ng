@@ -34,6 +34,31 @@
         </div>
 
         <br>
+        <br>
+
+        <div>
+            <h4>売却条件</h4>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input type="radio" [value]="0" [checked]="sellPattern == 0">
+                    <label (click)="selectSellPattern(0)">陰線出現で売却</label>
+                </div>
+            </div>
+            <br>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input type="radio" [value]="1" [checked]="sellPattern == 1">
+                    <label (click)="selectSellPattern(1)">一定期間保持</label>
+                </div>
+            </div>
+            <div class="ui mini input hold-daynum-input" >
+                <input type="number" [(ngModel)]="holdDays" [hidden]=!isHoldingAtDays>
+            </div>
+            <label [hidden]=!isHoldingAtDays>日</label>
+        </div>
+
+        <br>
+        <br>
 
         <div class="inline fields">
             <h4>価格帯絞り込み</h4>

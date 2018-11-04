@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Http } from '@angular/http';
+import { Http, RequestOptions } from '@angular/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 @Injectable()
 export class StockDataService {
 
-    constructor(private http: Http) { }
+    constructor(private http: Http, private httpClient: HttpClient) { }
+
 
     getPricesList(codeNumber) {
 

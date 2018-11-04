@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AppRoutingModule } from './/app-routing.module';
 import 'rxjs/Rx';
 import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
 import { HeroesComponent } from './heroes/heroes.component';
@@ -25,6 +26,7 @@ import { AbstractTodaysEpComponent } from './todays-ep/abstract-todays-ep/abstra
 import { StockDataService } from './services/stock-data.service';
 import { SharedEpService } from './services/shared-ep.service';
 import { SharedTodaysEpService } from './services/shared-todays-ep.service';
+import { SimulateService } from './services/simulate.service';
 
 
 @NgModule({
@@ -49,12 +51,14 @@ import { SharedTodaysEpService } from './services/shared-todays-ep.service';
     BrowserModule,
     FormsModule,
     AppRoutingModule,
-    HttpModule
+    HttpModule,
+    HttpClientModule
   ],
   providers: [
     StockDataService,
     SharedEpService,
-    SharedTodaysEpService
+    SharedTodaysEpService,
+    SimulateService
   ],
   bootstrap: [AppComponent]
 })
