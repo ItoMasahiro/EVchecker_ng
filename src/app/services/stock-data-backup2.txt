@@ -1,0 +1,356 @@
+import { Injectable } from '@angular/core';
+import { Http } from '@angular/http';
+import { SharedEpService } from './shared-ep.service';
+import { count } from 'rxjs/operators';
+
+@Injectable()
+export class StockDataService {
+
+    constructor(private http: Http, private share: SharedEpService) { }
+
+    getPricesList(codeNumber) {
+
+        const pricesListList = new Object();
+        /** 取得した数 */
+        let codeCount = 0;
+        /** 正常に取得できた銘柄の数 */
+        let normalCodeNumber = 0;
+        /** 取得を終了する数 */
+        let endConditionNumber = 0;
+
+        return new Promise((resolve, reject) => {
+
+            const stockDatasFolder = this.http.get(this.share.stockDataPath);
+            stockDatasFolder.subscribe((data) => {
+                endConditionNumber = Math.min(data.json().length, codeNumber);
+                console.log(data);
+                for (let i = 0; i < endConditionNumber; i++) {
+                    this.getDiscreteStockData(data.json()[i]).then((datasList) => {
+                        /*
+                        帰ってきたdatasListは、配列だけどstringとして認識されている上に、普通にArray(datasList)とかじゃ
+                        配列にキャストできなかったので、string->json->配列 って感じで無理やり配列に変換した。強引ですね。
+                        本来どうやってやるのが正解なのかよくわからない。
+                        */
+                        const dataNum = JSON.parse(JSON.stringify(datasList)).length
+                        for (let j = 0; j < dataNum; j++) {
+                            pricesListList[normalCodeNumber] = datasList[j];
+                            normalCodeNumber++;
+                        }
+                        if (judgeLoopEnd()) {
+                            console.log(pricesListList)
+                            resolve(pricesListList);
+                        }
+                    }).catch(() => {
+                        if (judgeLoopEnd()) {
+                            resolve(pricesListList);
+                        }
+                    });
+                }
+            }, (err) => {
+                console.log('えらー')
+                console.log(err);
+            });
+
+
+            //     this.http.get(`https://dosj4jgzqe.execute-api.ap-northeast-1.amazonaws.com/stage1`)
+            //         .subscribe((resp) => {
+            //             console.log('ファイル一覧取得完了');
+            //             console.log(resp.json());
+
+            //             var codeCount = 0;
+            //             var bunkatu = [];
+            //             let roopCount = 0;
+
+            //             const roopNum = Math.min(codeNumber, resp.json().length);
+
+            //             for (var i = 0; i < roopNum; i++) {
+            //                 ajax('https://s3-ap-northeast-1.amazonaws.com/ev-checker-data/' + resp.json()[i], (result) => {
+
+            //                     roopCount++;
+
+            //                     result = JSON.parse(result);
+
+            //                     if (result) {
+
+            //                         for (var j = 0; j < result.prices.length; j++) {
+            //                             const strDate = result.prices[j].date.split('-');
+            //                             result.prices[j].date = new Date(strDate[0], strDate[1] - 1, strDate[2], 15);
+            //                             result.prices[j].us = calcUpperShadow(result.prices[j].open, result.prices[j].high, result.prices[j].low, result.prices[j].close);
+            //                             result.prices[j].ls = calcLowerShadow(result.prices[j].open, result.prices[j].high, result.prices[j].low, result.prices[j].close);
+            //                             // 足の種類。ちょっと珍しいかもだけどイメージしやすいように1,0,-1で区別(1:陽線 0:ぺったんこ -1:陰線)
+            //                             if ((result.prices[j].close - result.prices[j].open) > 0) {
+            //                                 // 終値が始値より大きければ陽線
+            //                                 result.prices[j].barType = 1;
+            //                             } else if ((result.prices[j].close - result.prices[j].open) < 0) {
+            //                                 // 終値が始値より小さければ陰線
+            //                                 result.prices[j].barType = -1;
+            //                             } else {
+            //                                 // どっちでもなければぺったんこ
+            //                                 result.prices[j].barType = 0;
+            //                             }
+            //                         }
+
+
+            //                         const isDataNormal = checkDataNormal(result);
+            //                         if (!isDataNormal) {
+            //                             console.log('異常なデータを検出');
+            //                             return;
+            //                         }
+
+            //                         /*
+            //                         過去に分割されたことがあるかどうかを調べる。
+            //                         分割されてるっぽかったら、スルーしてサンプルから除外する。
+            //                         これは一時的な応急処置であり、そのうちちゃんと直したい。
+            //                         とは言っても分割に関する処理は本当に難しい。。
+            //                         */
+            //                         if (result.prices.length > 0) {
+            //                             var priceBeforeOneDay = result.prices[0].open;
+            //                             var bunkatuFlag = false;
+            //                             for (var j = 1; j < result.prices.length; j++) {
+            //                                 // １日で始値が倍以上、または半分以下になっていた場合、分割と判断
+            //                                 if (result.prices[j].open >= priceBeforeOneDay * 2
+            //                                     || result.prices[j].open <= priceBeforeOneDay / 2) {
+            //                                     bunkatuFlag = true;
+            //                                 }
+
+            //                                 priceBeforeOneDay = result.prices[j].open;
+            //                             }
+
+            //                             if (bunkatuFlag) {
+            //                                 console.log('分割が見つかったのでスルーします');
+            //                                 bunkatu.push(result.code);
+            //                                 return;
+            //                             }
+            //                         }
+
+
+            //                         result.prices.reverse();
+
+            //                         pricesListList[codeCount + ''] = result;
+            //                         console.log(result);
+            //                         codeCount++;
+            //                     }
+
+
+            //                     if (roopCount >= roopNum) {
+            //                         console.log('get complete');
+            //                         console.log(pricesListList);
+            //                         resolve(pricesListList);
+            //                     }
+            //                 });
+            //             }
+
+            //         });
+
+            //     // Ajax（非同期タイプ）
+            //     function ajax(url, callback) {
+            //         var xmlHttp = new XMLHttpRequest();
+            //         xmlHttp.onreadystatechange = function () {
+            //             if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            //                 callback(xmlHttp.responseText);
+            //             }
+            //         };
+            //         xmlHttp.open("GET", url, true); // true:非同期、false:同期
+            //         xmlHttp.send(null);
+            //     }
+
+            //     /**
+            //     * 上ヒゲの長さを計算する(株価全体に対するパーセンテージ)
+            //     * @param {number} open 
+            //     * @param {number} high 
+            //     * @param {number} low 
+            //     * @param {number} close 
+            //     */
+            //     function calcUpperShadow(open, high, low, close) {
+            //         var upperShadowLength = high - Math.max(open, close);
+            //         if (upperShadowLength == 0) {
+            //             return 0;
+            //         }
+            //         var upperShadowPercentForAll = (upperShadowLength / high) * 100;
+
+            //         return upperShadowPercentForAll;
+            //     }
+
+            //     /**
+            //      * 下ヒゲの長さを計算する(株価全体に対するパーセンテージ)
+            //      * @param {number} open 
+            //      * @param {number} high 
+            //      * @param {number} low 
+            //      * @param {number} close 
+            //      */
+            //     function calcLowerShadow(open, high, low, close) {
+            //         var lowerShadowLength = Math.min(open, close) - low;
+            //         if (lowerShadowLength == 0) {
+            //             return 0;
+            //         }
+            //         var lowerShadowPercentForAll = (lowerShadowLength / high) * 100;
+
+            //         return lowerShadowPercentForAll;
+            //     }
+
+            //     /**
+            //     * 異常なデータを検出する。
+            //     * わざわざ関数作った理由は、関数作らずに普通に書くとまたbreakFlag的なbreakしたことを表すフラグを用意しないといけなくなり
+            //     * なんかダサかったので、普通じゃないやり方かもしれないけど関数にすることでreturnでいい感じにした。
+            //     */
+            //     function checkDataNormal(result) {
+            //         for (var j = 0; j < result.prices.length; j++) {
+            //             const prices = result.prices[j];
+            //             if (prices.open <= 0 || prices.high <= 0 || prices.low <= 0 || prices.close <= 0
+            //                 || prices.us < 0 || prices.ls < 0 || prices.barType <= -2 || prices.barType >= 2) {
+            //                 // ここ、本来はbreakFlagをtrueにしてbreakしたりしなきゃいけなかった。関数にすることでスマートになった。気がする。
+            //                 return false;
+            //             }
+            //         }
+            //         return true;
+            //     }
+
+        });
+
+        /**
+         * ループの終了を判定する
+         */
+        function judgeLoopEnd() {
+            codeCount++;
+            if (codeCount >= endConditionNumber) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+    }
+
+
+    /**
+     * 個別銘柄の株価データを取得し、整形する
+     * @param fileName 取得する銘柄のファイルの名前
+     */
+    getDiscreteStockData(fileName) {
+        const resultList = [];
+        return new Promise((resolve, reject) => {
+            const discreteStockDataFolder = this.http.get(this.share.stockDataPath + '/' + fileName);
+            discreteStockDataFolder.subscribe((data) => {
+                const datasList = data.json();
+                for (let i = 0; i < datasList.datas.length; i++) {
+
+                    const pricesList = datasList.datas[i];
+                    if (data) {
+                        for (var j = 0; j < pricesList.prices.length; j++) {
+                            const strDate = pricesList.prices[j].date.split('-');
+                            pricesList.prices[j].date = new Date(strDate[0], strDate[1] - 1, strDate[2], 15);
+                            pricesList.prices[j].us = calcUpperShadow(pricesList.prices[j].open, pricesList.prices[j].high, pricesList.prices[j].low, pricesList.prices[j].close);
+                            pricesList.prices[j].ls = calcLowerShadow(pricesList.prices[j].open, pricesList.prices[j].high, pricesList.prices[j].low, pricesList.prices[j].close);
+                            // 足の種類。ちょっと珍しいかもだけどイメージしやすいように1,0,-1で区別(1:陽線 0:ぺったんこ -1:陰線)
+                            if ((pricesList.prices[j].close - pricesList.prices[j].open) > 0) {
+                                // 終値が始値より大きければ陽線
+                                pricesList.prices[j].barType = 1;
+                            } else if ((pricesList.prices[j].close - pricesList.prices[j].open) < 0) {
+                                // 終値が始値より小さければ陰線
+                                pricesList.prices[j].barType = -1;
+                            } else {
+                                // どっちでもなければぺったんこ
+                                pricesList.prices[j].barType = 0;
+                            }
+                        }
+
+                        const isDataNormal = checkDataNormal(pricesList);
+                        if (!isDataNormal) {
+                            console.log('異常なデータを検出 ' + pricesList.code);
+                            continue;
+                        }
+
+                        /*
+                        過去に分割されたことがあるかどうかを調べる。
+                        分割されてるっぽかったら、スルーしてサンプルから除外する。
+                        これは一時的な応急処置であり、そのうちちゃんと直したい。
+                        とは言っても分割に関する処理は本当に難しい。。
+                        */
+                        if (pricesList.prices.length > 0) {
+                            var priceBeforeOneDay = pricesList.prices[0].open;
+                            var bunkatuFlag = false;
+                            for (var j = 1; j < pricesList.prices.length; j++) {
+                                // １日で始値が倍以上、または半分以下になっていた場合、分割と判断
+                                if (pricesList.prices[j].open >= priceBeforeOneDay * 2
+                                    || pricesList.prices[j].open <= priceBeforeOneDay / 2) {
+                                    bunkatuFlag = true;
+                                }
+
+                                priceBeforeOneDay = pricesList.prices[j].open;
+                            }
+
+                            if (bunkatuFlag) {
+                                console.log('分割が見つかったのでスルーします ' + pricesList.code);
+                                continue;
+                            }
+                        }
+
+                        pricesList.prices.reverse();
+                        resultList.push(pricesList);
+                    }
+                }
+
+                resolve(resultList);
+
+            }, (err) => {
+                console.log('えらー')
+                console.log(err);
+            });
+        });
+
+        /**
+        * 上ヒゲの長さを計算する(株価全体に対するパーセンテージ)
+        * @param open 
+        * @param high 
+        * @param low 
+        * @param close 
+        */
+        function calcUpperShadow(open, high, low, close) {
+            var upperShadowLength = high - Math.max(open, close);
+            if (upperShadowLength == 0) {
+                return 0;
+            }
+            var upperShadowPercentForAll = (upperShadowLength / high) * 100;
+
+            return upperShadowPercentForAll;
+        }
+
+        /**
+         * 下ヒゲの長さを計算する(株価全体に対するパーセンテージ)
+         * @param open 
+         * @param high 
+         * @param low 
+         * @param close 
+         */
+        function calcLowerShadow(open, high, low, close) {
+            var lowerShadowLength = Math.min(open, close) - low;
+            if (lowerShadowLength == 0) {
+                return 0;
+            }
+            var lowerShadowPercentForAll = (lowerShadowLength / high) * 100;
+
+            return lowerShadowPercentForAll;
+        }
+
+        /**
+        * 異常なデータを検出する。
+        * わざわざ関数作った理由は、関数作らずに普通に書くとまたbreakFlag的なbreakしたことを表すフラグを用意しないといけなくなり
+        * なんかダサかったので、普通じゃないやり方かもしれないけど関数にすることでreturnでいい感じにした。
+        */
+        function checkDataNormal(list) {
+            for (var j = 0; j < list.prices.length; j++) {
+                const prices = list.prices[j];
+                if (prices.open <= 0 || prices.high <= 0 || prices.low <= 0 || prices.close <= 0
+                    || prices.us < 0 || prices.ls < 0 || prices.barType <= -2 || prices.barType >= 2) {
+                    // ここ、本来はbreakFlagをtrueにしてbreakしたりしなきゃいけなかった。関数にすることでスマートになった。気がする。
+                    return false;
+                }
+            }
+            return true;
+        }
+
+    }
+
+
+
+}

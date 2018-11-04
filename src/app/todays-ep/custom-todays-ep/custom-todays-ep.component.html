@@ -1,0 +1,137 @@
+<div class="card">
+
+    <div class="ui segment">
+        <div class="ui active inverted dimmer" *ngIf="isLoading">
+            <div class="ui medium text loader">{{processText}}</div>
+        </div>
+
+        <h2>条件を入力してください</h2>
+        <div class="ui form">
+
+        </div>
+
+        <br>
+
+        <div class="inline fields">
+            <h4>価格帯絞り込み</h4>
+            <div class="ui small input">
+                <input type="number" [(ngModel)]="priceBandLow" class="price_band_input">
+            </div>
+            <label>円　〜</label>
+            <div class="ui small input">
+                <input type="number" [(ngModel)]="priceBandHigh" class="price_band_input">
+            </div>
+            <label>円</label>
+        </div>
+
+        <br>
+
+        <table class="ep_condition_inputs">
+            <th>
+                {{epConditionList.length+1}}本目
+            </th>
+            <tr>
+                <td>
+                    <label>上ヒゲ</label>
+                </td>
+                <td>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputUsLength_low">
+                    </div>
+                    <label>%　〜</label>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputUsLength_high">
+                    </div>
+                    <label>%</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label>実線</label>
+                </td>
+                <td>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputRealBodyLength_low">
+                    </div>
+                    <label>%　〜</label>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputRealBodyLength_high">
+                    </div>
+                    <label>%</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label>下ヒゲ</label>
+                </td>
+                <td>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputLsLength_low">
+                    </div>
+                    <label>%　〜</label>
+                    <div class="ui small input">
+                        <input type="number" [(ngModel)]="inputLsLength_high">
+                    </div>
+                    <label>%</label>
+                </td>
+            </tr>
+        </table>
+
+        <br>
+
+        <div class="ui form">
+            <div class="inline fields">
+                <form name="myForm" ng-controller="Ctrl">
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="1" [checked]="barType_input == 1">
+                            <label (click)="selectBarType(1)">陽線</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="-1" [checked]="barType_input == -1">
+                            <label (click)="selectBarType(-1)">陰線</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" [value]="0" [checked]="barType_input == 0">
+                            <label (click)="selectBarType(0)">どちらでも</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <button class="ui green medium button" (click)="addBar()">足追加</button>
+
+        <br>
+
+        <div id="ep_bar_conditions">
+            <table>
+                <tr>
+                    <td type="text" (focus)="focusFunc()" *ngFor="let td of tdArray"></td>
+                </tr>
+            </table>
+        </div>
+
+        <br>
+
+        <button class="ui blue big button" (click)="start()">start</button>
+
+    </div>
+
+    <label id="progress"></label>
+
+    <br>
+    <br>
+
+    <label id="result_label"></label>
+    <div class="canvas_div">
+        <canvas class="priceRange"></canvas>
+    </div>
+    <div class="canvas_div">
+        <canvas class="period"></canvas>
+    </div>
+</div>
